@@ -15,7 +15,7 @@
 
   body {
     background-color: #f5fef8;
-    font-family: 'DM Sans', sans-serif;
+    font-family: 'Nunito', system-ui, sans-serif;
     color: #0f2419;
     min-height: 100dvh;
     overflow-x: hidden;
@@ -36,6 +36,9 @@
 }
 
 @layer components {
+
+  /* Nunito utility */
+  .font-nunito { font-family: 'Nunito', system-ui, sans-serif; }
 
   /* Mesh background decoration */
   .mesh-bg::before {
@@ -100,7 +103,7 @@
     border: 1.5px solid #d1fae5;
     border-radius: 12px;
     color: #0f2419;
-    font-family: 'Syne', sans-serif;
+    font-family: 'Nunito', system-ui, sans-serif;
     font-size: 1rem;
     font-weight: 600;
     transition: border-color 0.2s, background 0.2s, box-shadow 0.2s;
@@ -114,7 +117,7 @@
   .input-eco::placeholder {
     color: #9ca3af;
     font-weight: 400;
-    font-family: 'DM Sans', sans-serif;
+    font-family: 'Nunito', system-ui, sans-serif;
   }
 
   /* Pill badge */
@@ -133,7 +136,7 @@
   .cat-tab {
     padding: 7px 15px;
     border-radius: 10px;
-    font-family: 'Syne', sans-serif;
+    font-family: 'Nunito', system-ui, sans-serif;
     font-weight: 700;
     font-size: 0.78rem;
     letter-spacing: 0.01em;

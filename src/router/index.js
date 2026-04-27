@@ -1,7 +1,14 @@
 import { createRouter, createWebHashHistory } from 'vue-router'
 import HomeView from '@/views/HomeView.vue'
+import { isSetupDone } from '@/composables/useMaterials'
 
 const routes = [
+  {
+    path: '/setup',
+    name: 'setup',
+    component: () => import('@/views/SetupView.vue'),
+    meta: { title: 'Configuração inicial' }
+  },
   {
     path: '/',
     name: 'home',
@@ -51,6 +58,13 @@ const router = createRouter({
   routes,
   scrollBehavior() {
     return { top: 0 }
+  }
+})
+
+// Guard: redirect to setup on first launch
+router.beforeEach((to) => {
+  if (to.name !== 'setup' && !isSetupDone()) {
+    return { name: 'setup' }
   }
 })
 

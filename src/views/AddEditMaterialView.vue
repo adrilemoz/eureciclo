@@ -131,10 +131,18 @@
           <div class="px-4 py-3 border-b border-eco-50">
             <p class="text-slate-400 text-xs font-dm mb-1.5">Preço por kg (R$) *</p>
             <div class="relative">
-              <span class="absolute left-3 top-1/2 -translate-y-1/2 font-syne font-bold text-slate-400 text-sm pointer-events-none">R$</span>
-              <input v-model.number="form.pricePerKg" type="number" min="0.01" step="0.01"
-                     placeholder="0,00" required
-                     class="input-eco w-full pl-10 pr-4 py-3 text-sm" />
+              <span class="absolute left-3 top-1/2 -translate-y-1/2 font-nunito font-bold text-slate-400 text-sm pointer-events-none">R$</span>
+              <input
+                :value="displayPrice"
+                type="text"
+                inputmode="numeric"
+                placeholder="3,00"
+                maxlength="10"
+                class="input-eco w-full pl-10 pr-4 py-3 text-sm"
+                @input="onPriceInput"
+                @focus="e => e.target.style.borderColor = '#22c55e'"
+                @blur="e => e.target.style.borderColor = '#d1fae5'"
+              />
             </div>
             <p v-if="errors.pricePerKg" class="text-red-500 text-xs font-dm mt-1">{{ errors.pricePerKg }}</p>
           </div>
@@ -228,6 +236,7 @@
 import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useMaterials } from '@/composables/useMaterials'
+import { numberToDisplay } from '@/composables/usePriceMask'
 
 const route = useRoute()
 const router = useRouter()
@@ -238,12 +247,27 @@ const matId = computed(() => route.params.id)
 
 const form = ref({
   name: '', description: '', category: 'outros',
-  pricePerKg: '', unitType: 'weight', unitsPerKg: '',
+  pricePerKg: 3, unitType: 'weight', unitsPerKg: '',
   icon: '♻️', accentColor: '#22c55e'
 })
 const errors = ref({})
 const saving = ref(false)
 const showToast = ref(false)
+
+// Price mask display
+const displayPrice = ref(numberToDisplay(3))
+
+function onPriceInput(event) {
+  const digits = event.target.value.replace(/\D/g, '')
+  const cents  = parseInt(digits || '0', 10)
+  const str    = String(cents).padStart(3, '0')
+  const intPart = str.slice(0, -2).replace(/^0+/, '') || '0'
+  const decPart = str.slice(-2)
+  displayPrice.value = `${intPart.replace(/\B(?=(\d{3})+(?!\d))/g, '.')},${decPart}`
+  form.value.pricePerKg = cents / 100 || 0
+  const el = event.target
+  requestAnimationFrame(() => el.setSelectionRange(el.value.length, el.value.length))
+}
 
 const iconOptions = ['♻️','🥫','🧴','⚡','🔧','📦','🫙','🔩','🌿','💎','🪨','🔋','📱','🖥️','🚗']
 const colorOptions = ['#22c55e','#60a5fa','#f59e0b','#f87171','#a78bfa','#5eead4','#fb7185','#d97706','#9ca3af','#c084fc','#34d399','#fcd34d']
@@ -262,6 +286,7 @@ onMounted(() => {
         unitType: mat.unitType, unitsPerKg: mat.unitsPerKg || '',
         icon: mat.icon || '♻️', accentColor: mat.accentColor || '#22c55e'
       }
+      displayPrice.value = numberToDisplay(mat.pricePerKg)
     }
   }
 })

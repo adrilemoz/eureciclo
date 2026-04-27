@@ -186,11 +186,16 @@ import { useRoute } from 'vue-router'
 import { useMaterials } from '@/composables/useMaterials'
 import { useSales } from '@/composables/useSales'
 import { useFormatNumber } from '@/composables/useFormatNumber'
+import { useCalculator } from '@/composables/useCalculator'
 
 const route = useRoute()
 const { materials, byCategory, categories, formatCurrency, getPricePerUnit, calcValue } = useMaterials()
 const { addSale } = useSales()
 const { formatThousands, parseThousands } = useFormatNumber()
+
+// Shared global state — HomeView reads totalEstimate/totalKg/totalItems from here
+const { quantities, totalEstimate: grandTotal, totalKg, totalItems,
+        setQty: _setQty, clearAll: _clearAll } = useCalculator()
 
 const activeCategory = ref(route.query.cat || 'aluminio')
 watch(() => route.query.cat, v => { if (v) activeCategory.value = v })
@@ -198,33 +203,34 @@ function selectCategory(key) { activeCategory.value = key }
 
 const currentMaterials = computed(() => byCategory.value[activeCategory.value] ?? [])
 
-// Numeric quantities used for calculations
-const quantities  = ref({})
 // Display strings shown in inputs (formatted with thousand separator)
-const displayQty  = ref({})
+const displayQty = ref({})
+
+// Sync displayQty from loaded quantities on mount
+for (const [id, val] of Object.entries(quantities.value)) {
+  if (val > 0) {
+    const str = val % 1 === 0 ? String(val) : String(val).replace('.', ',')
+    displayQty.value[id] = formatThousands(str)
+  }
+}
 
 function stepFor(mat) { return mat.unitType === 'units' ? 1 : 0.1 }
 
 function setQty(id, numericValue) {
   const v = Math.max(0, numericValue)
-  quantities.value[id]  = +v.toFixed(3)
-  displayQty.value[id]  = v > 0 ? formatThousands(String(v).replace('.', ',')) : ''
+  _setQty(id, v)
+  displayQty.value[id] = v > 0 ? formatThousands(String(v).replace('.', ',')) : ''
 }
 
-function onInput(id, event, mat) {
+function onInput(id, event) {
   const raw = event.target.value
   const formatted = formatThousands(raw)
   displayQty.value[id] = formatted
   const numeric = parseThousands(formatted)
-  quantities.value[id] = Math.max(0, +numeric.toFixed(3))
+  _setQty(id, Math.max(0, +numeric.toFixed(3)))
 }
 
-function onFocus(id) {
-  // Already formatted — nothing special needed
-}
-
-function onBlur(id, mat) {
-  // Re-format on blur to normalise trailing commas
+function onBlur(id) {
   const n = quantities.value[id] || 0
   if (n > 0) {
     const str = n % 1 === 0 ? String(n) : String(n).replace('.', ',')
@@ -247,33 +253,12 @@ function addQty(id, mat) {
 }
 
 function clearAll() {
-  quantities.value = {}
+  _clearAll()
   displayQty.value = {}
 }
 
-const grandTotal = computed(() => {
-  let total = 0
-  for (const mat of materials.value) {
-    const qty = quantities.value[mat.id] || 0
-    if (qty > 0) total += calcValue(mat, qty)
-  }
-  return total
-})
-
-const totalKgDisplay = computed(() => {
-  let kg = 0
-  for (const mat of materials.value) {
-    const qty = quantities.value[mat.id] || 0
-    if (qty <= 0) continue
-    if (mat.unitType === 'units') kg += qty / (mat.unitsPerKg || 1)
-    else kg += qty
-  }
-  return kg.toFixed(2)
-})
-
-const filledCount = computed(() =>
-  materials.value.filter(m => (quantities.value[m.id] || 0) > 0).length
-)
+const totalKgDisplay = computed(() => totalKg.value.toFixed(2))
+const filledCount    = computed(() => totalItems.value)
 
 // ── Save sale ──────────────────────────────────────────────
 const showToast = ref(false)

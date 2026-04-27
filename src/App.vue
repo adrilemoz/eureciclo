@@ -19,8 +19,8 @@
       </router-view>
     </main>
 
-    <!-- Bottom Navigation -->
-    <BottomNav class="fixed bottom-0 left-0 right-0 z-50" />
+    <!-- Bottom Navigation (hidden on setup screen) -->
+    <BottomNav v-if="route.name !== 'setup'" class="fixed bottom-0 left-0 right-0 z-50" />
   </div>
 </template>
 

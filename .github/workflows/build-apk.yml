@@ -43,21 +43,28 @@ jobs:
       - name: Build web assets (Vite)
         run: npm run build
 
-      # ── 7. Capacitor sync ────────────────────────────────────────────────────
+      # ── 7. Add Android platform (if not present) ─────────────────────────────
+      - name: Add Android platform (if needed)
+        run: |
+          if [ ! -d "android" ]; then
+            npx cap add android
+          fi
+
+      # ── 8. Capacitor sync ────────────────────────────────────────────────────
       - name: Sync Capacitor to Android
         run: npx cap sync android
 
-      # ── 8. Grant Gradle execute permission ───────────────────────────────────
+      # ── 9. Grant Gradle execute permission ───────────────────────────────────
       - name: Make gradlew executable
         working-directory: android
         run: chmod +x gradlew
 
-      # ── 9. Build APK ─────────────────────────────────────────────────────────
+      # ── 10. Build APK ─────────────────────────────────────────────────────────
       - name: Build debug APK
         working-directory: android
         run: ./gradlew assembleDebug --no-daemon
 
-      # ── 10. Upload artifact ──────────────────────────────────────────────────
+      # ── 11. Upload artifact ──────────────────────────────────────────────────
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
@@ -65,7 +72,7 @@ jobs:
           path: android/app/build/outputs/apk/debug/app-debug.apk
           retention-days: 30
 
-      # ── 11. Summary ──────────────────────────────────────────────────────────
+      # ── 12. Summary ──────────────────────────────────────────────────────────
       - name: Build summary
         run: |
           echo "## ✅ APK Build concluído!" >> $GITHUB_STEP_SUMMARY

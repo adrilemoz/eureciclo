@@ -7,8 +7,9 @@ export default {
   theme: {
     extend: {
       fontFamily: {
-        syne: ['Syne', 'sans-serif'],
-        dm: ['DM Sans', 'sans-serif']
+        nunito: ['Nunito', 'system-ui', 'sans-serif'],
+        syne:   ['Nunito', 'system-ui', 'sans-serif'],
+        dm:     ['Nunito', 'system-ui', 'sans-serif'],
       },
       colors: {
         eco: {

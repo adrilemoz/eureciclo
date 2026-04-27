@@ -1,13 +1,15 @@
 import { ref, computed } from 'vue'
 
-const STORAGE_KEY = 'recicla_materials'
+const STORAGE_KEY  = 'recicla_materials'
+const USER_KEY     = 'recicla_user_name'
+const SETUP_KEY    = 'recicla_setup_done'
 
 const defaultMaterials = [
   {
     id: 1,
     name: 'Alumínio / Latas',
     category: 'aluminio',
-    pricePerKg: 6.00,
+    pricePerKg: 3.00,
     unitType: 'units',
     unitsPerKg: 70,
     icon: '🥫',
@@ -18,7 +20,7 @@ const defaultMaterials = [
     id: 2,
     name: 'PET',
     category: 'pet',
-    pricePerKg: 2.50,
+    pricePerKg: 3.00,
     unitType: 'units',
     unitsPerKg: 25,
     icon: '🧴',
@@ -29,7 +31,7 @@ const defaultMaterials = [
     id: 3,
     name: 'Cobre',
     category: 'cobre',
-    pricePerKg: 30.00,
+    pricePerKg: 3.00,
     unitType: 'weight',
     unitsPerKg: null,
     icon: '⚡',
@@ -40,7 +42,7 @@ const defaultMaterials = [
     id: 4,
     name: 'Latão',
     category: 'cobre',
-    pricePerKg: 18.00,
+    pricePerKg: 3.00,
     unitType: 'weight',
     unitsPerKg: null,
     icon: '🔧',
@@ -50,8 +52,8 @@ const defaultMaterials = [
   {
     id: 5,
     name: 'Papel / Papelão',
-    category: 'outros',
-    pricePerKg: 0.50,
+    category: 'papel',
+    pricePerKg: 3.00,
     unitType: 'weight',
     unitsPerKg: null,
     icon: '📦',
@@ -60,9 +62,20 @@ const defaultMaterials = [
   },
   {
     id: 6,
+    name: 'Baterias',
+    category: 'baterias',
+    pricePerKg: 3.00,
+    unitType: 'weight',
+    unitsPerKg: null,
+    icon: '🔋',
+    accentColor: '#a78bfa',
+    description: 'Pilhas e baterias usadas'
+  },
+  {
+    id: 7,
     name: 'Vidro',
     category: 'outros',
-    pricePerKg: 0.20,
+    pricePerKg: 3.00,
     unitType: 'weight',
     unitsPerKg: null,
     icon: '🫙',
@@ -70,10 +83,10 @@ const defaultMaterials = [
     description: 'Garrafas e potes'
   },
   {
-    id: 7,
+    id: 8,
     name: 'Ferro / Aço',
     category: 'outros',
-    pricePerKg: 1.20,
+    pricePerKg: 3.00,
     unitType: 'weight',
     unitsPerKg: null,
     icon: '🔩',
@@ -81,10 +94,10 @@ const defaultMaterials = [
     description: 'Sucata ferrosa'
   },
   {
-    id: 8,
+    id: 9,
     name: 'Plástico Misto',
     category: 'outros',
-    pricePerKg: 0.80,
+    pricePerKg: 3.00,
     unitType: 'weight',
     unitsPerKg: null,
     icon: '♻️',
@@ -101,19 +114,49 @@ function loadMaterials() {
   return defaultMaterials.map(m => ({ ...m }))
 }
 
-function saveMaterials(materials) {
+function saveMaterials(mats) {
   try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(materials))
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(mats))
   } catch (e) {}
 }
 
 const materials = ref(loadMaterials())
 
+/* ── Setup helpers ─────────────────────────────────────────── */
+export function isSetupDone() {
+  return !!localStorage.getItem(SETUP_KEY)
+}
+
+export function getUserName() {
+  return localStorage.getItem(USER_KEY) || ''
+}
+
+export function applySetup({ userName, prices }) {
+  localStorage.setItem(USER_KEY, userName.trim() || 'Usuário')
+
+  const catPrice = {
+    aluminio: Number(prices.latas)    || 3,
+    pet:      Number(prices.pet)      || 3,
+    cobre:    Number(prices.cobre)    || 3,
+    papel:    Number(prices.papel)    || 3,
+    baterias: Number(prices.baterias) || 3,
+    outros:   Number(prices.outros)   || 3,
+  }
+
+  materials.value = materials.value.map(m => ({
+    ...m,
+    pricePerKg: catPrice[m.category] ?? m.pricePerKg
+  }))
+
+  saveMaterials(materials.value)
+  localStorage.setItem(SETUP_KEY, 'true')
+}
+
 export function useMaterials() {
   const byCategory = computed(() => {
-    const groups = { aluminio: [], pet: [], cobre: [], outros: [] }
+    const groups = { aluminio: [], pet: [], cobre: [], papel: [], baterias: [], outros: [] }
     for (const m of materials.value) {
-      if (groups[m.category]) groups[m.category].push(m)
+      if (groups[m.category] !== undefined) groups[m.category].push(m)
       else groups.outros.push(m)
     }
     return groups
@@ -167,13 +210,11 @@ export function useMaterials() {
     return true
   }
 
-  // Price per unit (for materials measured in units)
   function getPricePerUnit(material) {
     if (material.unitType !== 'units' || !material.unitsPerKg) return null
     return material.pricePerKg / material.unitsPerKg
   }
 
-  // Calculate total value
   function calcValue(material, quantity) {
     if (!quantity || isNaN(quantity) || quantity <= 0) return 0
     if (material.unitType === 'units') {
@@ -184,6 +225,7 @@ export function useMaterials() {
   }
 
   function formatCurrency(value) {
+    if (!isFinite(value)) return '—'
     return new Intl.NumberFormat('pt-BR', {
       style: 'currency',
       currency: 'BRL'
@@ -195,23 +237,29 @@ export function useMaterials() {
   }
 
   const categories = [
-    { key: 'aluminio', label: 'Alumínio', icon: '🥫', shortLabel: 'Alumínio' },
-    { key: 'pet',      label: 'PET',      icon: '🧴', shortLabel: 'PET'      },
-    { key: 'cobre',    label: 'Cobre',    icon: '⚡', shortLabel: 'Cobre'    },
-    { key: 'outros',   label: 'Outros',   icon: '♻️', shortLabel: 'Outros'   }
+    { key: 'aluminio', label: 'Alumínio',  icon: '🥫', shortLabel: 'Alumínio' },
+    { key: 'pet',      label: 'PET',       icon: '🧴', shortLabel: 'PET'      },
+    { key: 'cobre',    label: 'Cobre',     icon: '⚡', shortLabel: 'Cobre'    },
+    { key: 'papel',    label: 'Papel',     icon: '📦', shortLabel: 'Papel'    },
+    { key: 'baterias', label: 'Baterias',  icon: '🔋', shortLabel: 'Baterias' },
+    { key: 'outros',   label: 'Outros',    icon: '♻️', shortLabel: 'Outros'   }
   ]
 
   const categoryIcons = {
     aluminio: '🥫',
-    pet: '🧴',
-    cobre: '⚡',
-    outros: '♻️'
+    pet:      '🧴',
+    cobre:    '⚡',
+    papel:    '📦',
+    baterias: '🔋',
+    outros:   '♻️'
   }
 
   const categoryColors = {
     aluminio: { bg: 'rgba(156,163,175,0.15)', border: 'rgba(156,163,175,0.3)', text: '#d1d5db' },
     pet:      { bg: 'rgba(96,165,250,0.15)',  border: 'rgba(96,165,250,0.3)',  text: '#93c5fd' },
     cobre:    { bg: 'rgba(245,158,11,0.15)',  border: 'rgba(245,158,11,0.3)',  text: '#fcd34d' },
+    papel:    { bg: 'rgba(252,211,77,0.15)',  border: 'rgba(252,211,77,0.3)',  text: '#fde68a' },
+    baterias: { bg: 'rgba(167,139,250,0.15)', border: 'rgba(167,139,250,0.3)', text: '#c4b5fd' },
     outros:   { bg: 'rgba(74,222,128,0.15)',  border: 'rgba(74,222,128,0.3)', text: '#86efac' }
   }
 
